@@ -95,13 +95,58 @@ class BaseTrainer:
         """
         from serpentarium.utils.visualization import Visualizer
 
-        # Отображаем графики счета
-        if self.scores:
-            Visualizer.plot_scores(self.scores, self.avg_scores)
+        # Очищаем вывод перед отображением всех графиков
+        from IPython.display import clear_output
+        clear_output(wait=True)
 
-        # Отображаем метрики обучения
+        # Создаем подграфики
+        # Определяем количество строк для метрик
+        n_metrics = len(self.metrics) if self.metrics else 0
+        n_metric_rows = (n_metrics + 2) // 3  # Используем до 3 столбцов для метрик
+
+        # Определяем общее количество строк: 1 для счетов + строки для метрик
+        n_rows = 1 + (n_metric_rows if n_metrics > 0 else 0)
+
+        import matplotlib.pyplot as plt
+        fig = plt.figure(figsize=(18, 6 * n_rows))
+
+        # Создаем оси для графиков счета (первая строка, 2 столбца)
+        if self.scores:
+            ax_scores = plt.subplot2grid((n_rows, 3), (0, 0), colspan=1)
+            ax_avg_scores = plt.subplot2grid((n_rows, 3), (0, 1), colspan=1)
+
+            # График счета за эпизод
+            ax_scores.set_title('Счет за эпизод')
+            ax_scores.plot(self.scores)
+            ax_scores.set_xlabel('Эпизод')
+            ax_scores.set_ylabel('Счет')
+
+            # График среднего счета
+            ax_avg_scores.set_title('Средний счет (за 100 эпизодов)')
+            ax_avg_scores.plot(self.avg_scores)
+            ax_avg_scores.set_xlabel('Эпизод')
+            ax_avg_scores.set_ylabel('Средний счет')
+
+        # Создаем графики для метрик (начиная со второй строки)
         if self.metrics:
-            Visualizer.plot_metrics(self.metrics)
+            for i, (metric_name, values) in enumerate(self.metrics.items()):
+                row = 1 + i // 3
+                col = i % 3
+                ax = plt.subplot2grid((n_rows, 3), (row, col))
+
+                ax.set_title(metric_name)
+                ax.plot(values)
+                ax.set_xlabel('Шаг')
+                ax.set_ylabel('Значение')
+
+                # Сглаженная версия для наглядности
+                if len(values) > 10:
+                    window_size = min(10, len(values) // 10)
+                    smoothed = np.convolve(values, np.ones(window_size) / window_size, mode='valid')
+                    ax.plot(range(window_size - 1, len(values)), smoothed, 'r-', alpha=0.7)
+
+        plt.tight_layout()
+        plt.show()
 
     def _update_metrics(self, episode_metrics: Dict[str, Any]) -> None:
         """

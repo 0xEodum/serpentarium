@@ -10,7 +10,7 @@ class Visualizer:
     @staticmethod
     def plot_scores(scores: List[float], avg_scores: List[float],
                     title: str = "Обучение", clear: bool = True,
-                    show: bool = True) -> None:
+                    show: bool = True, fig=None, ax=None) -> Tuple[plt.Figure, plt.Axes]:
         """
         Отображение графиков счета
 
@@ -20,37 +20,44 @@ class Visualizer:
             title: Заголовок графика
             clear: Очищать ли предыдущий вывод
             show: Отображать ли график
+            fig: Существующая фигура (если None, создается новая)
+            ax: Существующие оси (если None, создаются новые)
+
+        Returns:
+            Tuple[plt.Figure, plt.Axes]: Фигура и оси
         """
-        if clear:
+        if clear and fig is None:
             clear_output(wait=True)
 
-        plt.figure(figsize=(12, 5))
+        if fig is None and ax is None:
+            fig, ax = plt.subplots(1, 2, figsize=(12, 5))
 
         # График счета за каждый эпизод
-        plt.subplot(1, 2, 1)
-        plt.title('Счет за эпизод')
-        plt.plot(scores)
-        plt.xlabel('Эпизод')
-        plt.ylabel('Счет')
+        ax[0].set_title('Счет за эпизод')
+        ax[0].plot(scores)
+        ax[0].set_xlabel('Эпизод')
+        ax[0].set_ylabel('Счет')
 
         # График среднего счета
-        plt.subplot(1, 2, 2)
-        plt.title('Средний счет (за 100 эпизодов)')
-        plt.plot(avg_scores)
-        plt.xlabel('Эпизод')
-        plt.ylabel('Средний счет')
+        ax[1].set_title('Средний счет (за 100 эпизодов)')
+        ax[1].plot(avg_scores)
+        ax[1].set_xlabel('Эпизод')
+        ax[1].set_ylabel('Средний счет')
 
-        plt.suptitle(title)
-        plt.tight_layout()
+        fig.suptitle(title)
+        fig.tight_layout()
 
-        if show:
+        if show and fig is not None:
             plt.show()
+
+        return fig, ax
 
     @staticmethod
     def plot_metrics(metrics: Dict[str, List[float]],
                      title: str = "Метрики обучения",
                      clear: bool = True,
-                     show: bool = True) -> None:
+                     show: bool = True,
+                     fig=None, ax=None) -> Tuple[plt.Figure, List[plt.Axes]]:
         """
         Отображение графиков метрик обучения
 
@@ -59,41 +66,57 @@ class Visualizer:
             title: Заголовок графика
             clear: Очищать ли предыдущий вывод
             show: Отображать ли график
+            fig: Существующая фигура (если None, создается новая)
+            ax: Существующие оси (если None, создаются новые)
+
+        Returns:
+            Tuple[plt.Figure, List[plt.Axes]]: Фигура и оси
         """
-        if clear:
+        if clear and fig is None:
             clear_output(wait=True)
 
         # Определяем количество графиков
         n_metrics = len(metrics)
 
         if n_metrics == 0:
-            return
+            return fig, ax
 
         # Определяем размер фигуры
         n_cols = min(3, n_metrics)
         n_rows = (n_metrics + n_cols - 1) // n_cols
 
-        plt.figure(figsize=(6 * n_cols, 4 * n_rows))
+        if fig is None or ax is None:
+            fig, ax = plt.subplots(n_rows, n_cols, figsize=(6 * n_cols, 4 * n_rows))
+
+            # Если только одна метрика, то ax не будет массивом
+            if n_metrics == 1:
+                ax = np.array([ax])
+
+            # Преобразуем в одномерный массив для единообразия обработки
+            ax = ax.flatten()
 
         # Отображаем каждую метрику
-        for i, (metric_name, values) in enumerate(metrics.items(), 1):
-            plt.subplot(n_rows, n_cols, i)
-            plt.title(metric_name)
-            plt.plot(values)
-            plt.xlabel('Шаг')
-            plt.ylabel('Значение')
+        for i, (metric_name, values) in enumerate(metrics.items()):
+            if i < len(ax):
+                ax[i].set_title(metric_name)
+                ax[i].plot(values)
+                ax[i].set_xlabel('Шаг')
+                ax[i].set_ylabel('Значение')
 
-            # Сглаженная версия для наглядности
-            if len(values) > 10:
-                window_size = min(10, len(values) // 10)
-                smoothed = np.convolve(values, np.ones(window_size) / window_size, mode='valid')
-                plt.plot(range(window_size - 1, len(values)), smoothed, 'r-', alpha=0.7)
+                # Сглаженная версия для наглядности
+                if len(values) > 10:
+                    window_size = min(10, len(values) // 10)
+                    smoothed = np.convolve(values, np.ones(window_size) / window_size, mode='valid')
+                    ax[i].plot(range(window_size - 1, len(values)), smoothed, 'r-', alpha=0.7)
 
-        plt.suptitle(title)
-        plt.tight_layout()
+        if fig is not None:
+            fig.suptitle(title)
+            fig.tight_layout()
 
-        if show:
-            plt.show()
+            if show:
+                plt.show()
+
+        return fig, ax
 
     @staticmethod
     def visualize_state(state: np.ndarray, title: str = "Состояние") -> None:
