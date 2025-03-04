@@ -92,13 +92,16 @@ class RLTrainer(BaseTrainer):
                     break
 
             # Сохраняем результаты эпизода
-            self.scores.append(episode_reward)
+            # Для визуализации используем игровой счет (количество съеденной еды)
+            game_score = getattr(self.env, 'score', episode_reward)
+            self.scores.append(game_score)
             avg_score = self._calculate_avg_score()
             self.avg_scores.append(avg_score)
 
-            # Обновляем метрики
+            # Обновляем метрики - сохраняем и reward для полноты картины
             episode_metrics = {
-                'reward': episode_reward,
+                'game_score': game_score,
+                'total_reward': episode_reward,
                 'avg_loss': sum(episode_loss) / len(episode_loss) if episode_loss else None
             }
             self._update_metrics(episode_metrics)
@@ -119,7 +122,7 @@ class RLTrainer(BaseTrainer):
             if (episode + 1) % self.config.visualization_freq == 0 or episode == num_episodes - 1:
                 clear_output(wait=True)
                 print(f"Эпизод: {self.current_episode}/{self.current_episode + num_episodes - episode - 1}, "
-                      f"Счет: {episode_reward:.2f}, Средний счет: {avg_score:.2f}, "
+                      f"Счет: {game_score}, Средний счет: {avg_score:.2f}, "
                       f"Epsilon: {epsilon:.4f}, Время: {self._get_training_time()}")
 
                 # Визуализируем результаты
@@ -166,6 +169,7 @@ class RLTrainer(BaseTrainer):
         print(f"Оценка модели на {num_episodes} эпизодах...")
 
         eval_scores = []
+        eval_rewards = []
 
         for episode in range(num_episodes):
             state = self.env.reset()
@@ -186,21 +190,30 @@ class RLTrainer(BaseTrainer):
                 if done:
                     break
 
-            eval_scores.append(episode_reward)
-            print(f"Эпизод {episode + 1}/{num_episodes}, Счет: {episode_reward:.2f}")
+            # Сохраняем как игровой счет, так и суммарную награду
+            game_score = getattr(self.env, 'score', episode_reward)
+            eval_scores.append(game_score)
+            eval_rewards.append(episode_reward)
+
+            print(f"Эпизод {episode + 1}/{num_episodes}, Счет: {game_score}, Награда: {episode_reward:.2f}")
 
         avg_score = sum(eval_scores) / len(eval_scores)
         min_score = min(eval_scores)
         max_score = max(eval_scores)
 
+        avg_reward = sum(eval_rewards) / len(eval_rewards)
+
         print(f"Результаты оценки: Средний счет: {avg_score:.2f}, "
-              f"Мин: {min_score:.2f}, Макс: {max_score:.2f}")
+              f"Мин: {min_score}, Макс: {max_score}, "
+              f"Средняя награда: {avg_reward:.2f}")
 
         return {
             'avg_score': avg_score,
             'min_score': min_score,
             'max_score': max_score,
-            'scores': eval_scores
+            'avg_reward': avg_reward,
+            'scores': eval_scores,
+            'rewards': eval_rewards
         }
 
     def _calculate_epsilon(self, episode: int) -> float:

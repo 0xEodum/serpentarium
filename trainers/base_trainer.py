@@ -115,14 +115,14 @@ class BaseTrainer:
             ax_scores = plt.subplot2grid((n_rows, 3), (0, 0), colspan=1)
             ax_avg_scores = plt.subplot2grid((n_rows, 3), (0, 1), colspan=1)
 
-            # График счета за эпизод
-            ax_scores.set_title('Счет за эпизод')
+            # График счета за эпизод (игровой счет - количество съеденной еды)
+            ax_scores.set_title('Игровой счет за эпизод')
             ax_scores.plot(self.scores)
             ax_scores.set_xlabel('Эпизод')
             ax_scores.set_ylabel('Счет')
 
             # График среднего счета
-            ax_avg_scores.set_title('Средний счет (за 100 эпизодов)')
+            ax_avg_scores.set_title('Средний игровой счет (за 100 эпизодов)')
             ax_avg_scores.plot(self.avg_scores)
             ax_avg_scores.set_xlabel('Эпизод')
             ax_avg_scores.set_ylabel('Средний счет')
