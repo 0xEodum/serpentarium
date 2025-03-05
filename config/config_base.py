@@ -22,13 +22,17 @@ class ConfigBase:
         }
 
     def to_dict(self) -> Dict[str, Any]:
-        """Конвертация конфигурации в словарь"""
+        """Конвертация конфигурации в словарь с обработкой специальных типов Python"""
         result = {"metadata": self.metadata}
 
         # Добавляем все атрибуты, кроме служебных (начинающихся с _)
         for key, value in self.__dict__.items():
             if not key.startswith('_') and key != 'metadata':
-                result[key] = value
+                # Преобразуем кортежи в списки для правильной сериализации
+                if isinstance(value, tuple):
+                    result[key] = list(value)
+                else:
+                    result[key] = value
 
         return result
 
@@ -48,7 +52,13 @@ class ConfigBase:
         # Загружаем все остальные атрибуты
         for key, value in config_dict.items():
             if key != 'metadata' and hasattr(self, key):
-                setattr(self, key, value)
+                original_value = getattr(self, key)
+                # Если оригинальное значение было кортежем, но загруженное - список,
+                # восстанавливаем кортеж
+                if isinstance(original_value, tuple) and isinstance(value, list):
+                    setattr(self, key, tuple(value))
+                else:
+                    setattr(self, key, value)
 
         return self
 
@@ -67,7 +77,7 @@ class ConfigBase:
         # Определяем формат по расширению файла
         if file_path.endswith('.yaml') or file_path.endswith('.yml'):
             with open(file_path, 'w') as f:
-                yaml.dump(config_dict, f, default_flow_style=False)
+                yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
         elif file_path.endswith('.json'):
             with open(file_path, 'w') as f:
                 json.dump(config_dict, f, indent=2)
