@@ -8,7 +8,7 @@ class TrainingConfig(ConfigBase):
     def __init__(self):
         super().__init__()
         # Общие параметры
-        self.model_type = None  # Тип модели: 'dqn', 'double_dqn', 'genetic', etc.
+        self.model_type = None  # Тип модели: 'dqn', 'double_dqn', 'ppo', 'genetic', etc.
         self.trainer_type = None  # Тип тренера: 'rl', 'genetic', etc.
 
         # Параметры среды
@@ -24,6 +24,16 @@ class TrainingConfig(ConfigBase):
         self.epsilon_decay = 10000  # Скорость убывания epsilon
         self.target_update = 10  # Частота обновления целевой сети
         self.learning_rate = 0.0001  # Скорость обучения
+
+        # Параметры для PPO
+        self.actor_learning_rate = 0.0003  # Скорость обучения для актора
+        self.critic_learning_rate = 0.0003  # Скорость обучения для критика
+        self.ppo_clip_param = 0.2  # Параметр обрезания для PPO
+        self.ppo_epochs = 4  # Количество эпох обучения для одного батча данных
+        self.ppo_mini_batches = 4  # Количество мини-батчей
+        self.value_loss_coef = 0.5  # Коэффициент для функции потери ценности
+        self.entropy_coef = 0.01  # Коэффициент для энтропии
+        self.ppo_steps_per_update = 2048  # Количество шагов перед обновлением
 
         # Параметры визуализации и сохранения
         self.visualization_freq = 100  # Частота визуализации
@@ -83,5 +93,25 @@ class TrainingConfig(ConfigBase):
 
         if self.learning_rate <= 0:
             raise ConfigValidationError("Скорость обучения должна быть положительным числом")
+
+        # Проверка параметров PPO, если модель ppo
+        if self.model_type == 'ppo':
+            if self.actor_learning_rate <= 0:
+                raise ConfigValidationError("Скорость обучения актора должна быть положительным числом")
+
+            if self.critic_learning_rate <= 0:
+                raise ConfigValidationError("Скорость обучения критика должна быть положительным числом")
+
+            if self.ppo_clip_param <= 0:
+                raise ConfigValidationError("Параметр обрезания PPO должен быть положительным числом")
+
+            if self.ppo_epochs <= 0:
+                raise ConfigValidationError("Количество эпох обучения PPO должно быть положительным числом")
+
+            if self.ppo_mini_batches <= 0:
+                raise ConfigValidationError("Количество мини-батчей PPO должно быть положительным числом")
+
+            if self.ppo_steps_per_update <= 0:
+                raise ConfigValidationError("Количество шагов до обновления PPO должно быть положительным числом")
 
         return True

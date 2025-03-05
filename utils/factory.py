@@ -37,7 +37,7 @@ class ModelFactory:
         Создает модель нужного типа
 
         Args:
-            model_type: Тип модели ('dqn', 'double_dqn', 'genetic', etc.)
+            model_type: Тип модели ('dqn', 'double_dqn', 'ppo', 'genetic', etc.)
             env: Окружение
             network_config: Конфигурация сети
             training_config: Конфигурация обучения
@@ -125,11 +125,13 @@ class TrainerFactory:
 # Регистрация моделей и тренеров
 def register_defaults() -> None:
     """Регистрация стандартных моделей и тренеров"""
-    from serpentarium.models.rl.double_dqn import DoubleDQN
-    from serpentarium.trainers.rl_trainer import RLTrainer
+    from models.rl.double_dqn import DoubleDQN
+    from models.rl.ppo import PPO
+    from trainers.rl_trainer import RLTrainer
 
     # Регистрация моделей
     ModelFactory.register("double_dqn", DoubleDQN)
+    ModelFactory.register("ppo", PPO)
 
     # Регистрация тренеров
     TrainerFactory.register("rl", RLTrainer)

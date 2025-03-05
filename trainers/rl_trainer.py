@@ -56,6 +56,9 @@ class RLTrainer(BaseTrainer):
         # Получаем текущий эпсилон (для продолжения обучения)
         epsilon = self._calculate_epsilon(self.current_episode)
 
+        # Определяем, является ли модель PPO по наличию метода add_experience
+        is_ppo = hasattr(self.model, 'add_experience')
+
         # Основной цикл обучения
         for episode in range(num_episodes):
             # Увеличиваем счетчик эпизодов
@@ -64,7 +67,7 @@ class RLTrainer(BaseTrainer):
             # Сбрасываем среду и получаем начальное состояние
             state = self.env.reset()
             episode_reward = 0
-            episode_loss = []
+            episode_metrics = {'game_score': 0, 'total_reward': 0}
 
             # Цикл эпизода
             while True:
@@ -74,14 +77,22 @@ class RLTrainer(BaseTrainer):
                 # Выполняем действие в среде
                 next_state, reward, done = self.env.step(action)
 
-                # Сохраняем переход в памяти (если модель поддерживает)
-                if hasattr(self.model, 'memory'):
+                # Для PPO нужна специальная обработка после получения награды
+                if is_ppo:
+                    self.model.add_experience(reward, done)
+                # Для остальных алгоритмов - стандартная обработка
+                elif hasattr(self.model, 'memory'):
                     self.model.memory.push(state, action, reward, next_state, done)
 
                 # Обновляем модель
                 update_result = self.model.update()
-                if 'loss' in update_result and update_result['loss'] is not None:
-                    episode_loss.append(update_result['loss'])
+
+                # Обработка метрик обучения
+                for key, value in update_result.items():
+                    if value is not None:
+                        if key not in episode_metrics:
+                            episode_metrics[key] = []
+                        episode_metrics[key].append(value)
 
                 # Обновляем текущее состояние и счет
                 state = next_state
@@ -98,15 +109,18 @@ class RLTrainer(BaseTrainer):
             avg_score = self._calculate_avg_score()
             self.avg_scores.append(avg_score)
 
-            # Обновляем метрики - сохраняем и reward для полноты картины
-            episode_metrics = {
-                'game_score': game_score,
-                'total_reward': episode_reward,
-                'avg_loss': sum(episode_loss) / len(episode_loss) if episode_loss else None
-            }
+            # Обновляем финальные метрики эпизода
+            episode_metrics['game_score'] = game_score
+            episode_metrics['total_reward'] = episode_reward
+
+            # Усредняем накопленные метрики, если они представлены списками
+            for key, value in episode_metrics.items():
+                if isinstance(value, list) and value:
+                    episode_metrics[key] = sum(value) / len(value)
+
             self._update_metrics(episode_metrics)
 
-            # Рассчитываем новый эпсилон
+            # Рассчитываем новый эпсилон (для алгоритмов, которые его используют)
             epsilon = self._calculate_epsilon(self.current_episode)
 
             # Сохраняем лучшую модель
@@ -121,9 +135,18 @@ class RLTrainer(BaseTrainer):
             # Отображаем прогресс обучения
             if (episode + 1) % self.config.visualization_freq == 0 or episode == num_episodes - 1:
                 clear_output(wait=True)
-                print(f"Эпизод: {self.current_episode}/{self.current_episode + num_episodes - episode - 1}, "
-                      f"Счет: {game_score}, Средний счет: {avg_score:.2f}, "
-                      f"Epsilon: {epsilon:.4f}, Время: {self._get_training_time()}")
+
+                # Формируем информационную строку, учитывая тип модели
+                if is_ppo:
+                    info_str = f"Эпизод: {self.current_episode}/{self.current_episode + num_episodes - episode - 1}, " \
+                               f"Счет: {game_score}, Средний счет: {avg_score:.2f}, " \
+                               f"Время: {self._get_training_time()}"
+                else:
+                    info_str = f"Эпизод: {self.current_episode}/{self.current_episode + num_episodes - episode - 1}, " \
+                               f"Счет: {game_score}, Средний счет: {avg_score:.2f}, " \
+                               f"Epsilon: {epsilon:.4f}, Время: {self._get_training_time()}"
+
+                print(info_str)
 
                 # Визуализируем результаты
                 self.visualize_results()
@@ -171,16 +194,23 @@ class RLTrainer(BaseTrainer):
         eval_scores = []
         eval_rewards = []
 
+        # Определяем, является ли модель PPO
+        is_ppo = hasattr(self.model, 'add_experience')
+
         for episode in range(num_episodes):
             state = self.env.reset()
             episode_reward = 0
 
             while True:
-                # Выбираем действие без исследования (epsilon=0)
+                # Для PPO не используем эпсилон, но для совместимости интерфейса оставляем epsilon=0
                 action = self.model.get_action(state, epsilon=0)
 
                 # Выполняем действие в среде
                 next_state, reward, done = self.env.step(action)
+
+                # Если модель PPO, добавляем опыт (для корректного состояния буфера)
+                if is_ppo:
+                    self.model.add_experience(reward, done)
 
                 # Обновляем текущее состояние и счет
                 state = next_state
