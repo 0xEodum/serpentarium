@@ -127,11 +127,13 @@ def register_defaults() -> None:
     """Регистрация стандартных моделей и тренеров"""
     from models.rl.double_dqn import DoubleDQN
     from models.rl.ppo import PPO
+    from models.rl.sac import SAC
     from trainers.rl_trainer import RLTrainer
 
     # Регистрация моделей
     ModelFactory.register("double_dqn", DoubleDQN)
     ModelFactory.register("ppo", PPO)
+    ModelFactory.register("sac", SAC)
 
     # Регистрация тренеров
     TrainerFactory.register("rl", RLTrainer)

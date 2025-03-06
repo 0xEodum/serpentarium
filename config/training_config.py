@@ -35,6 +35,13 @@ class TrainingConfig(ConfigBase):
         self.entropy_coef = 0.01  # Коэффициент для энтропии
         self.ppo_steps_per_update = 2048  # Количество шагов перед обновлением
 
+        # Параметры для SAC
+        self.sac_alpha = 0.2  # Начальное значение коэффициента температуры
+        self.sac_auto_alpha = True  # Автоматическая настройка коэффициента температуры
+        self.sac_tau = 0.005  # Параметр мягкого обновления целевых сетей
+        self.sac_target_update_interval = 1  # Интервал обновления целевых сетей
+        self.sac_init_temperature = 0.1  # Начальная температура (когда используется фиксированное значение)
+
         # Параметры визуализации и сохранения
         self.visualization_freq = 100  # Частота визуализации
         self.model_save_path = "models/trained_model.pth"  # Путь для сохранения модели
@@ -113,5 +120,22 @@ class TrainingConfig(ConfigBase):
 
             if self.ppo_steps_per_update <= 0:
                 raise ConfigValidationError("Количество шагов до обновления PPO должно быть положительным числом")
+
+        if self.model_type == 'sac':
+            if hasattr(self, 'sac_alpha') and self.sac_alpha <= 0:
+                raise ConfigValidationError("Коэффициент температуры SAC (sac_alpha) должен быть положительным числом")
+
+            if hasattr(self, 'sac_tau') and (self.sac_tau <= 0 or self.sac_tau > 1):
+                raise ConfigValidationError("Параметр мягкого обновления SAC (sac_tau) должен быть в диапазоне (0, 1]")
+
+            if hasattr(self, 'sac_target_update_interval') and self.sac_target_update_interval <= 0:
+                raise ConfigValidationError("Интервал обновления целевых сетей SAC должен быть положительным числом")
+
+            if hasattr(self, 'sac_init_temperature') and self.sac_init_temperature <= 0:
+                raise ConfigValidationError("Начальная температура SAC должна быть положительным числом")
+
+            if hasattr(self, 'sac_auto_alpha') and not isinstance(self.sac_auto_alpha, bool):
+                raise ConfigValidationError(
+                    "Параметр автоматической настройки температуры SAC должен быть булевым значением")
 
         return True
