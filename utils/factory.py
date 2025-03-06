@@ -37,7 +37,7 @@ class ModelFactory:
         Создает модель нужного типа
 
         Args:
-            model_type: Тип модели ('dqn', 'double_dqn', 'ppo', 'genetic', etc.)
+            model_type: Тип модели ('dqn', 'double_dqn', 'dueling_dqn', 'ppo', 'genetic', etc.)
             env: Окружение
             network_config: Конфигурация сети
             training_config: Конфигурация обучения
@@ -126,12 +126,14 @@ class TrainerFactory:
 def register_defaults() -> None:
     """Регистрация стандартных моделей и тренеров"""
     from models.rl.double_dqn import DoubleDQN
+    from models.rl.dueling_dqn import DuelingDQN
     from models.rl.ppo import PPO
     from models.rl.sac import SAC
     from trainers.rl_trainer import RLTrainer
 
     # Регистрация моделей
     ModelFactory.register("double_dqn", DoubleDQN)
+    ModelFactory.register("dueling_dqn", DuelingDQN)
     ModelFactory.register("ppo", PPO)
     ModelFactory.register("sac", SAC)
 

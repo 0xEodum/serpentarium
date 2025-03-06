@@ -68,6 +68,15 @@ class NetworkConfig(ConfigBase):
         self.output_size = None  # Размер выходного слоя (количество действий)
         self.layers = []  # Список слоев
 
+        # Параметры для Dueling архитектуры
+        self.use_dueling_architecture = False  # Использовать ли Dueling архитектуру
+        self.dueling_stream_hidden_size = 128  # Размер скрытого слоя в потоках value и advantage
+        self.dueling_feature_size = 512  # Размер выхода слоя признаков перед разветвлением
+
+        # Настройки для потоков (можно расширить при необходимости)
+        self.value_stream_layers = []  # Дополнительные пользовательские слои для потока ценности
+        self.advantage_stream_layers = []  # Дополнительные пользовательские слои для потока преимущества
+
     def validate(self, expected_type: Optional[str] = None) -> bool:
         """
         Расширенная валидация для сетевой конфигурации
@@ -99,6 +108,15 @@ class NetworkConfig(ConfigBase):
 
         # Проверка размерностей
         NetworkConfigValidator.validate_dimensions(self.input_shape, self.layers)
+
+        # Проверка параметров Dueling архитектуры, если она используется
+        if self.use_dueling_architecture:
+            if self.dueling_stream_hidden_size <= 0:
+                raise ConfigValidationError(
+                    "Размер скрытого слоя в потоках Dueling архитектуры должен быть положительным числом")
+            if self.dueling_feature_size <= 0:
+                raise ConfigValidationError(
+                    "Размер выхода слоя признаков в Dueling архитектуре должен быть положительным числом")
 
         return True
 
