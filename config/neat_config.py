@@ -159,7 +159,6 @@ node_add_prob           = {self.node_add_prob}
 node_delete_prob        = {self.node_delete_prob}
 
 # включение/отключение
-enabled_default         = True
 enabled_mutate_rate     = 0.01
 
 # response
