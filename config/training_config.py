@@ -42,6 +42,13 @@ class TrainingConfig(ConfigBase):
         self.sac_target_update_interval = 1  # Интервал обновления целевых сетей
         self.sac_init_temperature = 0.1  # Начальная температура (когда используется фиксированное значение)
 
+        # Параметры для NEAT и генетических алгоритмов
+        self.neat_config_path = "config/neat_config.txt"  # Путь к файлу конфигурации NEAT
+        self.num_episodes_per_genome = 3  # Количество эпизодов для оценки одного генома
+        self.num_generations = 50  # Общее количество поколений
+        self.checkpoint_freq = 10  # Частота сохранения контрольных точек
+        self.checkpoint_prefix = "neat-checkpoint-"  # Префикс для файлов контрольных точек
+
         # Параметры визуализации и сохранения
         self.visualization_freq = 100  # Частота визуализации
         self.model_save_path = "models/trained_model.pth"  # Путь для сохранения модели
@@ -137,5 +144,20 @@ class TrainingConfig(ConfigBase):
             if hasattr(self, 'sac_auto_alpha') and not isinstance(self.sac_auto_alpha, bool):
                 raise ConfigValidationError(
                     "Параметр автоматической настройки температуры SAC должен быть булевым значением")
+
+        if self.model_type == 'neat':
+            import os
+
+            if not os.path.exists(self.neat_config_path):
+                raise ConfigValidationError(f"Файл конфигурации NEAT не найден: {self.neat_config_path}")
+
+            if self.num_episodes_per_genome <= 0:
+                raise ConfigValidationError("Количество эпизодов для оценки генома должно быть положительным числом")
+
+            if self.num_generations <= 0:
+                raise ConfigValidationError("Количество поколений должно быть положительным числом")
+
+            if self.checkpoint_freq <= 0:
+                raise ConfigValidationError("Частота сохранения контрольных точек должна быть положительным числом")
 
         return True
