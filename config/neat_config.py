@@ -158,9 +158,6 @@ initial_connection      = full
 node_add_prob           = {self.node_add_prob}
 node_delete_prob        = {self.node_delete_prob}
 
-# включение/отключение
-enabled_mutate_rate     = 0.01
-
 # response
 response_init_mean      = 1.0
 response_init_stdev     = 0.0
