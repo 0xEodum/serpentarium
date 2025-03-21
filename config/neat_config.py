@@ -180,6 +180,15 @@ num_outputs             = {num_outputs}
 node_add_prob           = {self.node_add_prob}
 node_delete_prob        = {self.node_delete_prob}
 
+# node response options
+response_init_mean      = 1.0
+response_init_stdev     = 0.0
+response_max_value      = 30.0
+response_min_value      = -30.0
+response_mutate_power   = 0.0
+response_mutate_rate    = 0.0
+response_replace_rate   = 0.0
+
 # network parameters
 feed_forward            = True
 initial_connection      = full
