@@ -5,6 +5,7 @@ from models.base_model import BaseModel
 from trainers.base_trainer import BaseTrainer
 from config.network_config import NetworkConfig
 from config.training_config import TrainingConfig
+from config.neat_config import NEATConfig
 from memory.base_memory import BaseMemory
 
 
@@ -37,7 +38,7 @@ class ModelFactory:
         Создает модель нужного типа
 
         Args:
-            model_type: Тип модели ('dqn', 'double_dqn', 'dueling_dqn', 'ppo', 'genetic', etc.)
+            model_type: Тип модели ('dqn', 'double_dqn', 'ppo', 'genetic', 'neat', etc.)
             env: Окружение
             network_config: Конфигурация сети
             training_config: Конфигурация обучения
@@ -56,7 +57,8 @@ class ModelFactory:
         model_class = cls._registry[model_type]
 
         # Проверяем, что конфигурация подходит для данного типа модели
-        network_config.validate(expected_type=model_type)
+        if hasattr(network_config, 'validate'):
+            network_config.validate(expected_type=model_type)
 
         # Создаем модель
         return model_class(
@@ -129,6 +131,8 @@ def register_defaults() -> None:
     from models.rl.dueling_dqn import DuelingDQN
     from models.rl.ppo import PPO
     from models.rl.sac import SAC
+    from models.genetic.neat import NEAT
+    from trainers.genetic_trainer import GeneticTrainer
     from trainers.rl_trainer import RLTrainer
 
     # Регистрация моделей
@@ -136,9 +140,11 @@ def register_defaults() -> None:
     ModelFactory.register("dueling_dqn", DuelingDQN)
     ModelFactory.register("ppo", PPO)
     ModelFactory.register("sac", SAC)
+    ModelFactory.register("neat", NEAT)
 
     # Регистрация тренеров
     TrainerFactory.register("rl", RLTrainer)
+    TrainerFactory.register("genetic", GeneticTrainer)
 
 
 # Регистрируем стандартные модели и тренеры

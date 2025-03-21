@@ -1,0 +1,129 @@
+#Cell 1
+from serpentarium.config import TrainingConfig, NetworkConfig
+from serpentarium.environments import SnakeEnvironment
+from serpentarium.models.rl import PPO
+from serpentarium.trainers import RLTrainer
+from serpentarium.utils import Visualizer
+
+#Cell 2
+import numpy as np
+import torch
+import os
+import matplotlib.pyplot as plt
+from IPython.display import clear_output
+import yaml
+import json
+
+#Cell 3
+os.makedirs("configs", exist_ok=True)
+os.makedirs("models", exist_ok=True)
+os.makedirs("memory", exist_ok=True)
+
+#Cell 4
+# Создание конфигурации для обучения PPO
+training_config = TrainingConfig()
+training_config.metadata = {
+    "type": "ppo",
+    "version": "1.0",
+    "compatible_with": ["ppo"]
+}
+training_config.model_type = "ppo"
+training_config.trainer_type = "rl"
+training_config.grid_size = 10
+training_config.episodes = 5000  # Для Colab лучше меньшее количество эпизодов
+
+# Общие параметры RL
+training_config.gamma = 0.99
+training_config.memory_size = 100000  # Не используется в PPO, но нужно для совместимости
+training_config.batch_size = 64       # Не используется в PPO, но нужно для совместимости
+training_config.epsilon_start = 1.0   # Не используется в PPO, но нужно для совместимости
+training_config.epsilon_end = 0.01    # Не используется в PPO, но нужно для совместимости
+training_config.epsilon_decay = 5000  # Не используется в PPO, но нужно для совместимости
+training_config.target_update = 10    # Не используется в PPO, но нужно для совместимости
+training_config.learning_rate = 0.0001 # Общая скорость обучения (для совместимости)
+
+# Параметры PPO
+training_config.actor_learning_rate = 0.0003  # Скорость обучения для актора
+training_config.critic_learning_rate = 0.0003  # Скорость обучения для критика
+training_config.ppo_clip_param = 0.2  # Параметр обрезания для PPO
+training_config.ppo_epochs = 4  # Количество эпох обучения для одного батча данных
+training_config.ppo_mini_batches = 4  # Количество мини-батчей
+training_config.value_loss_coef = 0.5  # Коэффициент для функции потери ценности
+training_config.entropy_coef = 0.01  # Коэффициент для энтропии
+training_config.ppo_steps_per_update = 1024  # Количество шагов перед обновлением
+
+# Пути для сохранения
+training_config.visualization_freq = 50
+training_config.model_save_path = "models/snake_ppo_model.pth"
+training_config.memory_save_path = "memory/ppo_memory.pkl"  # Не используется, но нужно для совместимости
+
+# Сохранение конфигурации обучения
+training_config.save("configs/ppo_training_config.yaml")
+print("Конфигурация обучения сохранена в configs/ppo_training_config.yaml")
+
+#Cell 5
+network_config = NetworkConfig()
+network_config.metadata = {
+    "type": "ppo",
+    "version": "1.0",
+    "compatible_with": ["ppo"]
+}
+
+# Форма входных и выходных данных
+network_config.input_shape = (3, 10, 10)  # [channels, height, width]
+network_config.output_size = 4  # 4 действия: вверх, вправо, вниз, влево
+
+# Архитектура сети - CNN со слоями полносвязной сети
+network_config.layers = [
+    # Сверточные слои
+    {"type": "conv2d", "filters": 32, "kernel_size": 3, "padding": 1, "stride": 1, "activation": "relu"},
+    {"type": "conv2d", "filters": 64, "kernel_size": 3, "padding": 1, "stride": 1, "activation": "relu"},
+    {"type": "conv2d", "filters": 64, "kernel_size": 3, "padding": 1, "stride": 1, "activation": "relu"},
+
+    # Слой сглаживания (flatten)
+    {"type": "flatten"},
+
+    # Полносвязные слои
+    {"type": "dense", "units": 512, "activation": "relu"},
+    {"type": "dense", "units": 4, "activation": "linear"}  # Выход для actor - logits для 4 действий
+]
+
+# Сохранение конфигурации сети
+network_config.save("configs/ppo_network_config.yaml")
+print("Конфигурация сети сохранена в configs/ppo_network_config.yaml")
+
+
+#Cell 6
+loaded_training_config = TrainingConfig.load("configs/ppo_training_config.yaml")
+loaded_network_config = NetworkConfig.load("configs/ppo_network_config.yaml")
+
+#Cell 7
+env = SnakeEnvironment(grid_size=loaded_training_config.grid_size)
+print(f"Создано окружение: {env.__class__.__name__}")
+
+# Определение устройства
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Используемое устройство: {device}")
+
+# Создание модели PPO
+model = PPO(
+    env=env,
+    network_config=loaded_network_config,
+    training_config=loaded_training_config,
+    device=device
+)
+print(f"Создана модель: {model.__class__.__name__}")
+
+# Создание тренера
+trainer = RLTrainer(
+    model=model,
+    env=env,
+    config=loaded_training_config
+)
+print(f"Создан тренер: {trainer.__class__.__name__}")
+
+# Часть 4: Запуск обучения
+print("\nЧасть 4: Запуск обучения")
+
+# Запуск обучения
+results = trainer.train()
