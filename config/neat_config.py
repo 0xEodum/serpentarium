@@ -109,10 +109,18 @@ class NEATConfig(ConfigBase):
 
         return True
 
-    def update_neat_config_file(self):
+    def update_neat_config_file(self, input_dims=None, output_dims=None):
         """
         Обновляет файл конфигурации NEAT на основе текущих параметров
+
+        Args:
+            input_dims (int, optional): Количество входных нейронов
+            output_dims (int, optional): Количество выходных нейронов
         """
+        # Определяем значения входов/выходов, если не указаны
+        num_inputs = input_dims if input_dims is not None else 3 * 10 * 10  # По умолчанию для Snake 10x10
+        num_outputs = output_dims if output_dims is not None else 4  # По умолчанию 4 действия
+
         # Содержимое конфигурационного файла
         config_content = f"""# NEAT конфигурация для игры Змейка
 
@@ -123,17 +131,17 @@ pop_size              = {self.population_size}
 reset_on_extinction   = False
 
 [DefaultGenome]
-# узловые активации
+# node activation options
 activation_default      = sigmoid
 activation_mutate_rate  = 0.0
 activation_options      = sigmoid
 
-# агрегация узлов
+# node aggregation options
 aggregation_default     = sum
 aggregation_mutate_rate = 0.0
 aggregation_options     = sum
 
-# смещения узла
+# node bias options
 bias_init_mean          = 0.0
 bias_init_stdev         = 1.0
 bias_max_value          = 30.0
@@ -142,32 +150,19 @@ bias_mutate_power       = 0.5
 bias_mutate_rate        = 0.7
 bias_replace_rate       = 0.1
 
-# совместимость генома
+# genome compatibility options
 compatibility_disjoint_coefficient = 1.0
 compatibility_weight_coefficient   = 0.5
 
-# связи
+# connection add/remove rates
 conn_add_prob           = {self.conn_add_prob}
 conn_delete_prob        = {self.conn_delete_prob}
+
+# connection enable options
 enabled_default         = True
 enabled_mutate_rate     = 0.01
-feed_forward            = True
-initial_connection      = full
 
-# узлы
-node_add_prob           = {self.node_add_prob}
-node_delete_prob        = {self.node_delete_prob}
-
-# response
-response_init_mean      = 1.0
-response_init_stdev     = 0.0
-response_max_value      = 30.0
-response_min_value      = -30.0
-response_mutate_power   = 0.0
-response_mutate_rate    = 0.0
-response_replace_rate   = 0.0
-
-# весовые коэффициенты связей
+# connection weight options
 weight_init_mean        = 0.0
 weight_init_stdev       = 1.0
 weight_max_value        = 30
@@ -175,6 +170,19 @@ weight_min_value        = -30
 weight_mutate_power     = 0.5
 weight_mutate_rate      = {self.weight_mutate_rate}
 weight_replace_rate     = 0.1
+
+# network parameters
+num_hidden              = 0
+num_inputs              = {num_inputs}
+num_outputs             = {num_outputs}
+
+# node add/remove rates
+node_add_prob           = {self.node_add_prob}
+node_delete_prob        = {self.node_delete_prob}
+
+# network parameters
+feed_forward            = True
+initial_connection      = full
 
 [DefaultSpeciesSet]
 compatibility_threshold = {self.compatibility_threshold}
@@ -191,7 +199,6 @@ survival_threshold = {self.survival_threshold}
 
         # Создаем директорию, если её нет
         os.makedirs(os.path.dirname(os.path.abspath(self.config_path)), exist_ok=True)
-
         # Записываем содержимое в файл
         with open(self.config_path, 'w') as f:
             f.write(config_content)
